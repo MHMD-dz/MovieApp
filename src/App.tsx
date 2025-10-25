@@ -1,34 +1,83 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useEffect, useState } from 'react'
 import './App.css'
+import Search from './components/Search'
+import Spinner from './components/Spinner';
+import Card from './components/Card';
 
-function App() {
-  const [count, setCount] = useState(0)
 
+const ApiBaseUrl = 'https://api.themoviedb.org/3';
+const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
+
+const API_OPTIONS = {
+  method: 'GET',
+  headers: {
+    accept: 'application/json',
+    Authorization: `Bearer ${API_KEY}`
+    }
+  };
+
+
+const App = () => {
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [errorM, seterrorM] = useState('');
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const FetchFunc = async () => {
+    setLoading (true);
+    seterrorM('');
+    try{
+      const endpoint = `${ApiBaseUrl}/discover/movie?sort_by=popularity.desc`;
+      const response = await fetch(endpoint, API_OPTIONS);
+      if(!response.ok) {
+        throw new Error ('Network response was not ok');
+      }
+      const data = await response.json();
+      if(data.results.length === 0) {
+        seterrorM('No movies found');
+        setMovies([]);
+        return;
+      }
+      setMovies(data.results);
+    } catch (error) {
+      seterrorM('Failed to fetch data from API');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    FetchFunc();
+  }, [])
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <main>
+      <div className='pattern' >
+        <div className='wrapper' >
+          <header>
+            <img src="./hero.png" alt="hero Banner" />
+            <h1>Find <span className='text-gradient' >Movies</span> You'll Enjoy Without the Hassel</h1>
+            <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+          </header>
+
+          <section className='all-movies'>
+            <h2 className='my-[40px]' >All Movies</h2>
+            { loading ? 
+                ( <Spinner /> ) : 
+                 errorM ? ( <p className='text-red-500' >{errorM}</p> ) :
+                ( 
+                  <ul>
+                    {movies.map((movie: any) => (
+                      <Card movie={movie} />
+                    ))}
+                  </ul>
+                  )
+            }
+          </section>
+
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    </main>
   )
 }
 
