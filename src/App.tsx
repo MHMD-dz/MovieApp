@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { use, useEffect, useState } from 'react'
 import './App.css'
 import Search from './components/Search'
 import Spinner from './components/Spinner';
 import Card from './components/Card';
+import { useDebounce } from 'react-use';
 
 
 const ApiBaseUrl = 'https://api.themoviedb.org/3';
@@ -23,12 +24,24 @@ const App = () => {
   const [errorM, seterrorM] = useState('');
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
-  const FetchFunc = async () => {
+  useDebounce(
+    () => {
+      setDebouncedSearchTerm(searchTerm);
+    },
+    1000,
+    [searchTerm]
+  );
+
+
+  const FetchFunc = async (query = '') => {
     setLoading (true);
     seterrorM('');
     try{
-      const endpoint = `${ApiBaseUrl}/discover/movie?sort_by=popularity.desc`;
+      const endpoint = query ?
+        `${ApiBaseUrl}/search/movie?query=${encodeURIComponent(query)}` :
+        `${ApiBaseUrl}/discover/movie?sort_by=popularity.desc`;
       const response = await fetch(endpoint, API_OPTIONS);
       if(!response.ok) {
         throw new Error ('Network response was not ok');
@@ -48,8 +61,8 @@ const App = () => {
   }
 
   useEffect(() => {
-    FetchFunc();
-  }, [])
+    FetchFunc(debouncedSearchTerm);
+  }, [debouncedSearchTerm])
   return (
     <main>
       <div className='pattern' >
